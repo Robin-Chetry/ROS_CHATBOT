@@ -120,5 +120,5 @@ Pull requests are welcome! If you want to improve the chatbot or add more integr
 ## Author
 
 Developed by **Robin Rawat**
-Contact: [robin.rawat@example.com](mailto:robinrawatchetry@gmail.com)
+Contact: [robinrawatchetry@gmail.com](mailto:robinrawatchetry@gmail.com)
 GitHub: [Robin-Chetry](https://github.com/Robin-Chetry)
