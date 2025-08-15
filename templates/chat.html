@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROS Chatbot AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.8);
+            border-left: 1px solid #00ff88;
+            border-right: 1px solid #00ff88;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.2);
+        }
+
+        .header {
+            background: linear-gradient(90deg, #0f0f23 0%, #1a1a2e 100%);
+            padding: 20px;
+            border-bottom: 2px solid #00ff88;
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 136, 0.1), transparent);
+            animation: scan 4s infinite;
+        }
+
+        @keyframes scan {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .header h1 {
+            font-size: 24px;
+            text-align: center;
+            color: #00ff88;
+            text-shadow: 0 0 15px #00ff88;
+            letter-spacing: 3px;
+            position: relative;
+            z-index: 1;
+            font-weight: 600;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.4);
+            scrollbar-width: thin;
+            scrollbar-color: #00ff88 rgba(26, 26, 46, 0.5);
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: rgba(26, 26, 46, 0.5);
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        .message {
+            margin: 20px 0;
+            display: flex;
+            gap: 15px;
+            opacity: 0;
+            animation: slideInUp 0.6s ease forwards;
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+        }
+
+        .user-avatar {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #000;
+            font-weight: bold;
+        }
+
+        .bot-avatar {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #00ff88;
+            border: 2px solid #00ff88;
+            animation: pulse 3s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { 
+                box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 0 25px rgba(0, 255, 136, 0.8);
+                transform: scale(1.05);
+            }
+        }
+
+        .message-content {
+            max-width: 75%;
+            padding: 20px 25px;
+            border-radius: 18px;
+            position: relative;
+            backdrop-filter: blur(10px);
+            line-height: 1.7;
+            font-size: 15px;
+            word-wrap: break-word;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            color: #000;
+            border: 1px solid #00ff88;
+            font-weight: 500;
+        }
+
+        .message.bot .message-content {
+            background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 100%);
+            color: #e8e8e8;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .code-block {
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            border: 2px solid #00ff88;
+            border-radius: 12px;
+            margin: 20px 0;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+            position: relative;
+        }
+
+        .code-header {
+            background: linear-gradient(90deg, rgba(0, 255, 136, 0.15), rgba(0, 255, 136, 0.08));
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .code-language {
+            color: #00ff88;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .copy-btn {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .copy-btn:hover {
+            background: rgba(0, 255, 136, 0.2);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .copy-btn.copied {
+            background: rgba(0, 255, 0, 0.2);
+            color: #00ff00;
+            border-color: #00ff00;
+        }
+
+        .code-content {
+            padding: 20px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            color: #f8f8f2;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            line-height: 1.6;
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 15px;
+            margin: 20px 0;
+            padding: 0 15px;
+        }
+
+        .typing-text {
+            color: rgba(0, 255, 136, 0.8);
+            font-style: italic;
+            font-size: 14px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #00ff88;
+            border-radius: 50%;
+            animation: typingAnimation 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingAnimation {
+            0%, 60%, 100% { 
+                transform: translateY(0); 
+                opacity: 0.5; 
+            }
+            30% { 
+                transform: translateY(-12px); 
+                opacity: 1; 
+            }
+        }
+
+        .input-section {
+            padding: 25px;
+            background: linear-gradient(90deg, #0f0f23 0%, #1a1a2e 100%);
+            border-top: 2px solid #00ff88;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(0, 255, 136, 0.5);
+            border-radius: 30px;
+            padding: 12px 25px;
+            box-shadow: 0 0 25px rgba(0, 255, 136, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .input-container:focus-within {
+            box-shadow: 0 0 35px rgba(0, 255, 136, 0.5);
+            border-color: #00ff88;
+        }
+
+        .message-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #e0e0e0;
+            font-size: 16px;
+            outline: none;
+            padding: 10px 0;
+            font-family: inherit;
+        }
+
+        .message-input::placeholder {
+            color: rgba(224, 224, 224, 0.5);
+        }
+
+        .message-input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            color: #000;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+            font-weight: bold;
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: scale(1.1) rotate(15deg);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.6);
+        }
+
+        .send-button:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .typing-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1.2em;
+            background: #00ff88;
+            animation: blink 1s infinite;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* Markdown styling */
+        .message-content h1, .message-content h2, .message-content h3 {
+            color: #00ff88;
+            margin: 16px 0 12px 0;
+            font-weight: 600;
+        }
+
+        .message-content h1 { font-size: 1.4em; }
+        .message-content h2 { font-size: 1.3em; }
+        .message-content h3 { font-size: 1.2em; }
+
+        .message-content p {
+            margin: 12px 0;
+        }
+
+        .message-content ul, .message-content ol {
+            margin: 12px 0;
+            padding-left: 20px;
+        }
+
+        .message-content li {
+            margin: 6px 0;
+        }
+
+        .message-content strong {
+            color: #00ffaa;
+            font-weight: 600;
+        }
+
+        .message-content em {
+            color: #88ffcc;
+            font-style: italic;
+        }
+
+        .message-content code {
+            background: rgba(0, 255, 136, 0.15);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+            color: #00ffaa;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, #ff4444, #cc3333) !important;
+            color: white !important;
+            border-color: #ff4444 !important;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .container {
+                border-left: none;
+                border-right: none;
+            }
+
+            .message-content {
+                max-width: 85%;
+                padding: 15px 18px;
+                font-size: 14px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+                letter-spacing: 2px;
+            }
+
+            .input-section {
+                padding: 20px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 ROS CHATBOT AI v2.1</h1>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                <div class="avatar bot-avatar">🤖</div>
+                <div class="message-content">
+                    <strong>ROS CHATBOT SYSTEM INITIALIZED</strong><br><br>
+                    Hello! I'm your ROS (Robot Operating System) assistant. I can help you with:
+                    <ul>
+                        <li>ROS concepts and documentation</li>
+                        <li>Code examples and implementation</li>
+                        <li>Troubleshooting and best practices</li>
+                        <li>Package development guidance</li>
+                    </ul>
+                    Ask me anything about ROS!
+                </div>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="avatar bot-avatar">🤖</div>
+            <div class="typing-text">Processing your request</div>
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+        
+        <div class="input-section">
+            <div class="input-container">
+                <input type="text" class="message-input" id="messageInput" 
+                       placeholder="Ask me about ROS..." maxlength="500">
+                <button class="send-button" id="sendButton">
+                    ➤
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        // Global variable to track typing state
+        let isTyping = false;
+
+        function addMessage(text, isUser = false, isError = false, animate = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = `avatar ${isUser ? 'user-avatar' : 'bot-avatar'}`;
+            avatar.textContent = isUser ? '👤' : '🤖';
+            
+            const content = document.createElement('div');
+            content.className = `message-content ${isError ? 'error-message' : ''}`;
+            
+            if (isUser) {
+                messageDiv.appendChild(content);
+                messageDiv.appendChild(avatar);
+            } else {
+                messageDiv.appendChild(avatar);
+                messageDiv.appendChild(content);
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            
+            if (animate && !isUser && !isError) {
+                typeMessage(content, text);
+            } else {
+                if (!isUser && text && !isError) {
+                    content.innerHTML = processMessageContent(text);
+                } else {
+                    content.textContent = text;
+                }
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            return messageDiv;
+        }
+
+        function processMessageContent(text) {
+            // First, extract and handle code blocks
+            const codeBlocks = [];
+            let processedText = text;
+            let codeBlockIndex = 0;
+
+            // Handle markdown code blocks
+            const codeBlockRegex = /```(\w*)\n?([\s\S]*?)```/g;
+            processedText = processedText.replace(codeBlockRegex, (match, language, code) => {
+                const placeholder = `__CODE_BLOCK_${codeBlockIndex}__`;
+                codeBlocks.push({
+                    placeholder,
+                    language: language || 'text',
+                    code: code.trim()
+                });
+                codeBlockIndex++;
+                return placeholder;
+            });
+
+            // Handle inline code blocks (lines that look like code)
+            const lines = processedText.split('\n');
+            let inCodeSection = false;
+            let codeBuffer = [];
+            let processedLines = [];
+
+            for (let line of lines) {
+                const trimmedLine = line.trim();
+                const isCodeLike = (
+                    /^(import|from|def|class|if|for|while|try|except|with|return)\s+/.test(trimmedLine) ||
+                    /^\s*#/.test(line) ||
+                    /^\w+\s*=\s*/.test(trimmedLine) ||
+                    /^\s*\w+\.\w+/.test(line) ||
+                    (line.length > 0 && /^\s{4,}/.test(line))
+                );
+
+                if (isCodeLike && !trimmedLine.includes('__CODE_BLOCK_')) {
+                    if (!inCodeSection) {
+                        inCodeSection = true;
+                        codeBuffer = [line];
+                    } else {
+                        codeBuffer.push(line);
+                    }
+                } else {
+                    if (inCodeSection) {
+                        if (codeBuffer.length > 1) {
+                            const placeholder = `__CODE_BLOCK_${codeBlockIndex}__`;
+                            codeBlocks.push({
+                                placeholder,
+                                language: 'python',
+                                code: codeBuffer.join('\n').replace(/^\s*/, '').replace(/\s*$/, '')
+                            });
+                            processedLines.push(placeholder);
+                            codeBlockIndex++;
+                        } else {
+                            processedLines.push(...codeBuffer);
+                        }
+                        codeBuffer = [];
+                        inCodeSection = false;
+                    }
+                    
+                    if (trimmedLine || !inCodeSection) {
+                        processedLines.push(line);
+                    }
+                }
+            }
+
+            // Handle remaining code buffer
+            if (codeBuffer.length > 1) {
+                const placeholder = `__CODE_BLOCK_${codeBlockIndex}__`;
+                codeBlocks.push({
+                    placeholder,
+                    language: 'python',
+                    code: codeBuffer.join('\n').replace(/^\s*/, '').replace(/\s*$/, '')
+                });
+                processedLines.push(placeholder);
+            } else if (codeBuffer.length === 1) {
+                processedLines.push(...codeBuffer);
+            }
+
+            processedText = processedLines.join('\n');
+
+            // Convert markdown to HTML
+            processedText = markdownToHtml(processedText);
+
+            // Replace code block placeholders
+            codeBlocks.forEach(block => {
+                const codeBlockHTML = createCodeBlock(block.language, block.code);
+                processedText = processedText.replace(block.placeholder, codeBlockHTML);
+            });
+
+            return processedText;
+        }
+
+        function markdownToHtml(text) {
+            let html = text;
+            
+            // Headers
+            html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+            html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+            html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+            
+            // Bold and italic
+            html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+            
+            // Inline code
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+            
+            // Lists
+            html = html.replace(/^\* (.*$)/gim, '<li>$1</li>');
+            html = html.replace(/^- (.*$)/gim, '<li>$1</li>');
+            html = html.replace(/^\d+\. (.*$)/gim, '<li>$1</li>');
+            
+            // Group list items
+            html = html.replace(/(<li>.*<\/li>\s*)+/gs, '<ul>$&</ul>');
+            
+            // Paragraphs
+            const sections = html.split(/\n\s*\n/);
+            const processedSections = sections.map(section => {
+                section = section.trim();
+                if (!section) return '';
+                
+                if (section.includes('<h') || section.includes('<ul') || 
+                    section.includes('<li') || section.includes('__CODE_BLOCK_')) {
+                    return section;
+                }
+                
+                return `<p>${section.replace(/\n/g, '<br>')}</p>`;
+            });
+            
+            return processedSections.join('\n\n');
+        }
+
+        function createCodeBlock(language, code) {
+            const blockId = 'code-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            return `
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-language">${language.toUpperCase()}</span>
+                        <button class="copy-btn" onclick="copyCode('${blockId}')">Copy</button>
+                    </div>
+                    <div class="code-content" id="${blockId}">${escapeHtml(code)}</div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function copyCode(blockId) {
+            const codeElement = document.getElementById(blockId);
+            const code = codeElement.textContent;
+            
+            navigator.clipboard.writeText(code).then(() => {
+                const copyBtn = codeElement.parentNode.querySelector('.copy-btn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                copyBtn.classList.add('copied');
+                
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                // Fallback
+                const textArea = document.createElement('textarea');
+                textArea.value = code;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                const copyBtn = codeElement.parentNode.querySelector('.copy-btn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                copyBtn.classList.add('copied');
+                
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function typeMessage(element, text, speed = 30) {
+            isTyping = true;
+            const processedHTML = processMessageContent(text);
+            element.innerHTML = '';
+            
+            // Create a temporary element to get plain text for typing
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = processedHTML;
+            
+            // Get text content for typing effect
+            const plainText = tempDiv.textContent || tempDiv.innerText || '';
+            
+            let i = 0;
+            const cursor = document.createElement('span');
+            cursor.className = 'typing-cursor';
+            element.appendChild(cursor);
+            
+            function typeChar() {
+                if (i < plainText.length && isTyping) {
+                    const char = plainText.charAt(i);
+                    const textNode = document.createTextNode(char);
+                    element.insertBefore(textNode, cursor);
+                    i++;
+                    
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    setTimeout(typeChar, speed);
+                } else {
+                    // Typing complete, show processed HTML
+                    element.removeChild(cursor);
+                    element.innerHTML = processedHTML;
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    isTyping = false;
+                }
+            }
+            
+            typeChar();
+        }
+
+        function showTypingIndicator() {
+            typingIndicator.style.display = 'flex';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            typingIndicator.style.display = 'none';
+        }
+
+        function showError(message) {
+            addMessage(`⚠️ ERROR: ${message}`, false, true);
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || isTyping) return;
+            
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+            sendButton.innerHTML = '⏳';
+            
+            addMessage(message, true);
+            messageInput.value = '';
+            
+            showTypingIndicator();
+            
+            try {
+                // Simulate API call - replace with your actual endpoint
+                const formData = new FormData();
+                formData.append('msg', message);
+                
+                const response = await fetch('/get', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                
+                const botResponse = await response.text();
+                hideTypingIndicator();
+                
+                if (botResponse.trim()) {
+                    addMessage(botResponse, false, false, true);
+                } else {
+                    showError("Empty response from server");
+                }
+                
+            } catch (error) {
+                hideTypingIndicator();
+                console.error('Error:', error);
+                
+                // Demo response for URDF example
+                const demoResponse = `Here's a comprehensive **URDF (Unified Robot Description Format)** example for a simple robot:
+
+\`\`\`xml
+<?xml version="1.0"?>
+<robot name="simple_robot">
+  
+  <!-- Base Link -->
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="0.5 0.3 0.1"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 0.8 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.5 0.3 0.1"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
+    </inertial>
+  </link>
+
+  <!-- Wheel Links -->
+  <link name="left_wheel">
+    <visual>
+      <geometry>
+        <cylinder radius="0.1" length="0.05"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0.2 0.2 0.2 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.1" length="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+
+  <link name="right_wheel">
+    <visual>
+      <geometry>
+        <cylinder radius="0.1" length="0.05"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0.2 0.2 0.2 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.1" length="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+
+  <!-- Joints -->
+  <joint name="left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="left_wheel"/>
+    <origin xyz="0 0.175 -0.05" rpy="-1.5708 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <joint name="right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="right_wheel"/>
+    <origin xyz="0 -0.175 -0.05" rpy="-1.5708 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+</robot>
+\`\`\`
+
+## Key URDF Components Explained:
+
+**Links**: Physical parts of the robot
+- \`<visual>\`: How the link appears in visualization
+- \`<collision>\`: Shape used for collision detection
+- \`<inertial>\`: Mass and inertia properties for physics simulation
+
+**Joints**: Connections between links
+- \`type="continuous"\`: Allows unlimited rotation (wheels)
+- \`<origin>\`: Position and orientation relative to parent
+- \`<axis>\`: Rotation axis for the joint
+
+**Materials**: Visual appearance properties
+- \`<color>\`: RGBA values for coloring
+
+This URDF provides a more realistic (though still simplified) model for simulation purposes. Remember that accurate inertia calculations require CAD software and knowledge of the materials used. These values are estimates.
+
+Want to see how to **launch this URDF** in RViz or Gazebo?`;
+                
+                addMessage(demoResponse, false, false, true);
+            } finally {
+                messageInput.disabled = false;
+                sendButton.disabled = false;
+                sendButton.innerHTML = '➤';
+                messageInput.focus();
+            }
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+        
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !messageInput.disabled && !isTyping) {
+                sendMessage();
+            }
+        });
+
+        messageInput.focus();
+
+        // Make copyCode function global
+        window.copyCode = copyCode;
+    </script>
+</body>
+</html>
