@@ -83,7 +83,7 @@ python app.py
 Once the server is running, open:
 
 ```
-http://localhost:5000
+http://localhost:8080
 ```
 
 ---
@@ -115,14 +115,10 @@ Pull requests are welcome! If you want to improve the chatbot or add more integr
 
 ---
 
-## Screenshot
 
-![Chatbot UI Preview](https://via.placeholder.com/1000x500.png?text=ROS+Chatbot+UI)
-
----
 
 ## Author
 
 Developed by **Robin Rawat**
-Contact: [robin.rawat@example.com](mailto:robin.rawat@example.com)
+Contact: [robin.rawat@example.com](mailto:robinrawatchetry@gmail.com)
 GitHub: [Robin-Chetry](https://github.com/Robin-Chetry)
